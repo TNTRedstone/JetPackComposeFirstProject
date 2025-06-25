@@ -1,68 +1,58 @@
 package com.example.jetpackcomposefirstproject
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.example.jetpackcomposefirstproject.ui.theme.JetPackComposeFirstProjectTheme
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.jetpackcomposefirstproject.ui.ListViewScreen
+
+object AppDestinations {
+    const val LISTVIEW = "list view"
+}
 
 class MainActivity : ComponentActivity() {
+    lateinit var scheme: ColorScheme
+
+    @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            JetPackComposeFirstProjectTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        names = listOf("Calvin", "Maxwell", "Macy", "Miles", "Charmer", "Chadwick", "Blaze", "Smore", "Crystal", "Igloo"),
-                        paddingValues = innerPadding
-                    )
-                }
+            scheme = if (isSystemInDarkTheme()) dynamicDarkColorScheme(applicationContext) else dynamicLightColorScheme(applicationContext)
+
+            MaterialTheme(
+                colorScheme = scheme
+            ) {
+                Controller(this)
             }
         }
     }
 }
 
 @Composable
-fun Greeting(names: List<String>, paddingValues: PaddingValues) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+fun Controller(context: MainActivity) {
+    val navController = rememberNavController()
+
+    NavHost(
+        navController = navController,
+        startDestination = AppDestinations.LISTVIEW,
+        modifier = Modifier.fillMaxSize()
     ) {
-        for (name in names) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                ),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = 4.dp
-                )
-            ) {
-                Text(
-                    text = "Hello $name!",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
+        composable(AppDestinations.LISTVIEW) {
+            ListViewScreen(navController, context)
         }
     }
 }
