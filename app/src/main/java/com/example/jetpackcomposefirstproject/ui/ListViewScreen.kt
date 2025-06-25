@@ -66,6 +66,16 @@ import com.beust.klaxon.JsonObject
 import com.beust.klaxon.Parser
 import java.io.StringReader
 
+// Data class for better performance and type safety
+data class DreamParkEvent(
+    val title: String,
+    val date: String,
+    val link: String
+) {
+    // Generate a stable key for LazyColumn using hashCode for better performance
+    val key: String by lazy { "${title.hashCode()}_${date.hashCode()}" }
+}
+
 suspend fun getLastRefreshTimeString(context: Context): String? {
     return context.dataStore.data
         .map { preferences ->
@@ -74,7 +84,7 @@ suspend fun getLastRefreshTimeString(context: Context): String? {
         .firstOrNull()
 }
 
-suspend fun getLastScrapeResult(context: Context): List<Map<String, String>>? {
+suspend fun getLastScrapeResult(context: Context): List<DreamParkEvent>? {
     val jsonString = context.dreamParkDataStore.data
         .map { preferences ->
             preferences[LAST_SCRAPE_RESULT_KEY]
@@ -89,7 +99,12 @@ suspend fun getLastScrapeResult(context: Context): List<Map<String, String>>? {
 
             json?.mapNotNull { item ->
                 (item as? JsonObject)?.let { jsonObject ->
-                    jsonObject.mapValues { entry -> entry.value.toString() }
+                    val eventMap = jsonObject.mapValues { entry -> entry.value.toString() }
+                    DreamParkEvent(
+                        title = eventMap["title"] ?: "Unknown Event",
+                        date = eventMap["dateOnly"] ?: "Date TBD",
+                        link = eventMap["link"] ?: ""
+                    )
                 }
             }
         } catch (e: Exception) {
@@ -110,7 +125,7 @@ val LAST_SCRAPE_RESULT_KEY = stringPreferencesKey("last_scrape_result")
 @Composable
 fun ListViewScreen(navController: NavController, context: MainActivity) {
     val localContext = LocalContext.current
-    var dreamParkEvents by remember { mutableStateOf<List<Map<String, String>>>(emptyList()) }
+    var dreamParkEvents by remember { mutableStateOf<List<DreamParkEvent>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) } // Start as true
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var lastRefreshTime by remember { mutableStateOf<String?>(null) }
@@ -152,7 +167,7 @@ fun ListViewScreen(navController: NavController, context: MainActivity) {
                     println("🔄 UI: Starting fresh scrape...")
                     val scrapeStartTime = System.currentTimeMillis()
 
-                    val scrapedEvents: List<Map<String, String>> = withContext(Dispatchers.IO) {
+                    val scrapedEvents: List<DreamParkEvent> = withContext(Dispatchers.IO) {
                         scrapeDreamParkEvents(localContext)
                     }
                     val scrapeTime = System.currentTimeMillis() - scrapeStartTime
@@ -170,7 +185,15 @@ fun ListViewScreen(navController: NavController, context: MainActivity) {
 
                         println("💾 UI: Starting JSON serialization of ${scrapedEvents.size} events...")
                         val jsonStartTime = System.currentTimeMillis()
-                        val jsonScrapedEvents = Klaxon().toJsonString(scrapedEvents)
+                        // Convert back to map format for JSON serialization
+                        val eventsForJson = scrapedEvents.map { event ->
+                            mapOf(
+                                "title" to event.title,
+                                "dateOnly" to event.date,
+                                "link" to event.link
+                            )
+                        }
+                        val jsonScrapedEvents = Klaxon().toJsonString(eventsForJson)
                         val jsonTime = System.currentTimeMillis() - jsonStartTime
                         println("📄 UI: JSON serialization completed in ${jsonTime}ms")
 
@@ -319,6 +342,16 @@ fun ListViewScreen(navController: NavController, context: MainActivity) {
                 }
             }
             else -> {
+                // Memoize the click handler to prevent unnecessary recompositions
+                val onEventClick = remember {
+                    { link: String ->
+                        if (link.isNotEmpty()) {
+                            val intent = Intent(Intent.ACTION_VIEW, link.toUri())
+                            localContext.startActivity(intent)
+                        }
+                    }
+                }
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -326,12 +359,14 @@ fun ListViewScreen(navController: NavController, context: MainActivity) {
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(dreamParkEvents) { dreamParkEvent ->
+                    items(
+                        items = dreamParkEvents,
+                        key = { event -> event.key },
+                        contentType = { "event_card" }
+                    ) { dreamParkEvent ->
                         EventCard(
-                            title = dreamParkEvent["title"] ?: "Unknown Event",
-                            date = dreamParkEvent["dateOnly"] ?: "Date TBD",
-                            link = dreamParkEvent["link"] ?: "",
-                            context = localContext
+                            event = dreamParkEvent,
+                            onEventClick = onEventClick
                         )
                     }
                 }
@@ -341,20 +376,13 @@ fun ListViewScreen(navController: NavController, context: MainActivity) {
 }
 @Composable
 private fun EventCard(
-    title: String,
-    date: String,
-    link: String,
-    context: android.content.Context
+    event: DreamParkEvent,
+    onEventClick: (String) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                if (link.isNotEmpty()) {
-                    val intent = Intent(Intent.ACTION_VIEW, link.toUri())
-                    context.startActivity(intent)
-                }
-            },
+            .clickable { onEventClick(event.link) },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
@@ -384,7 +412,7 @@ private fun EventCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = title,
+                        text = event.title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -403,13 +431,13 @@ private fun EventCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = date,
+                            text = event.date,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-                if (link.isNotEmpty()) {
+                if (event.link.isNotEmpty()) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                         contentDescription = "Open event link",
