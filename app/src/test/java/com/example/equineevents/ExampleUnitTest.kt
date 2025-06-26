@@ -1,4 +1,4 @@
-package com.example.jetpackcomposefirstproject
+package com.example.equineevents
 
 import org.junit.Test
 

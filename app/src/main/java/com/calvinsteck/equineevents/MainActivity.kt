@@ -1,4 +1,4 @@
-package com.example.jetpackcomposefirstproject
+package com.calvinsteck.equineevents
 
 import android.os.Build
 import android.os.Bundle
@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.jetpackcomposefirstproject.ui.ListViewScreen
+import com.calvinsteck.equineevents.ui.ListViewScreen
 
 object AppDestinations {
     const val LISTVIEW = "list view"

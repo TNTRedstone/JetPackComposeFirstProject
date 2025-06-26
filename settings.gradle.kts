@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "JetPackComposeFirstProject"
+rootProject.name = "Equine Events"
 include(":app")

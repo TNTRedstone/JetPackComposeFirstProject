@@ -5,12 +5,12 @@ plugins {
 }
 
 android {
-    namespace = "com.example.jetpackcomposefirstproject"
+    namespace = "com.calvinsteck.equineevents"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.jetpackcomposefirstproject"
-        minSdk = 24
+        applicationId = "com.calvinsteck.equineevents"
+        minSdk = 32
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
