@@ -195,7 +195,6 @@ private fun hasCurrentYearEvents(htmlContent: String, pageIndex: Int? = null): B
 private fun parsePage(htmlContent: String, pageIndex: Int? = null): List<DreamParkEvent> {
     val document = Jsoup.parse(htmlContent)
     val calendar = java.util.Calendar.getInstance()
-    val currentYear = calendar.get(java.util.Calendar.YEAR)
 
     val eventContainers = document.select(".tribe-events-calendar-list__event")
     val eventYears = mutableListOf<Int>()
@@ -211,19 +210,20 @@ private fun parsePage(htmlContent: String, pageIndex: Int? = null): List<DreamPa
                 if (titleElement != null && linkElement != null && dateElement != null) {
                     val dateOnly = dateElement.text().replace(Regex("@.*"), "").trim()
                     val (startDate, endDate) = EventDateParser.parseDateString(dateOnly)
-
                     calendar.time = startDate
                     val year = calendar.get(java.util.Calendar.YEAR)
                     eventYears.add(year)
-                    if (year == currentYear) {
-                        DreamParkEvent(
-                                title = titleElement.text(),
-                                rawDateString = dateOnly,
-                                startDate = startDate,
-                                endDate = endDate,
-                                link = linkElement.attr("href")
-                        )
-                    } else null
+                    println(
+                            "[parsePage] Page $pageIndex: dateOnly='$dateOnly', parsedStartDate='$startDate', parsedYear=$year"
+                    )
+                    DreamParkEvent(
+                            title = titleElement.text(),
+                            rawDateString = dateOnly,
+                            startDate = startDate,
+                            endDate = endDate,
+                            link = linkElement.attr("href"),
+                            isStarred = false // will be set later
+                    )
                 } else null
             }
     if (pageIndex != null) println("[parsePage] Page $pageIndex: Event years found: $eventYears")

@@ -17,10 +17,12 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.calvinsteck.equineevents.ui.AddEventScreen
 import com.calvinsteck.equineevents.ui.ListViewScreen
 
 object AppDestinations {
     const val LISTVIEW = "list view"
+    const val ADDEVENT = "add event"
 }
 
 class MainActivity : ComponentActivity() {
@@ -31,13 +33,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            scheme = if (isSystemInDarkTheme()) dynamicDarkColorScheme(applicationContext) else dynamicLightColorScheme(applicationContext)
+            scheme =
+                    if (isSystemInDarkTheme()) dynamicDarkColorScheme(applicationContext)
+                    else dynamicLightColorScheme(applicationContext)
 
-            MaterialTheme(
-                colorScheme = scheme
-            ) {
-                Controller(this)
-            }
+            MaterialTheme(colorScheme = scheme) { Controller(this) }
         }
     }
 }
@@ -47,12 +47,11 @@ fun Controller(context: MainActivity) {
     val navController = rememberNavController()
 
     NavHost(
-        navController = navController,
-        startDestination = AppDestinations.LISTVIEW,
-        modifier = Modifier.fillMaxSize()
+            navController = navController,
+            startDestination = AppDestinations.LISTVIEW,
+            modifier = Modifier.fillMaxSize()
     ) {
-        composable(AppDestinations.LISTVIEW) {
-            ListViewScreen(navController, context)
-        }
+        composable(AppDestinations.LISTVIEW) { ListViewScreen(navController, context) }
+        composable(AppDestinations.ADDEVENT) { AddEventScreen(navController, context) }
     }
 }
